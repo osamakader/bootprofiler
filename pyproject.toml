@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bootprofiler"
+version = "0.1.0"
+description = "Cross-init Linux Boot Profiler for Embedded and Desktop Systems"
+readme = "README.md"
+authors = [{ name = "Osama Abdelkader", email = "osama.abdelkader@gmail.com" }]
+license = { text = "MIT" }
+dependencies = [
+    "click>=8.0",
+    "rich>=13.0",
+]
+requires-python = ">=3.8"
+
+[project.urls]
+Homepage = "https://github.com/osamakader/bootprofiler"
+Source = "https://github.com/osamakader/bootprofiler"
+
+[project.scripts]
+bootprofiler = "bootprofiler.cli:analyze"
