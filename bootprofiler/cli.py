@@ -12,8 +12,16 @@ from bootprofiler.core.visualizer import print_cli_report, save_html_report
 @click.option("--systemd-time", type=click.Path(exists=True), help="systemd-analyze time output")
 @click.option("--systemd-blame", type=click.Path(exists=True), help="systemd-analyze blame output")
 @click.option("--output", "-o", default=None, help="Save HTML report to file")
+@click.option(
+    "--format",
+    "output_format",
+    type=click.Choice(["simple", "pretty"], case_sensitive=False),
+    default="simple",
+    show_default=True,
+    help="Terminal layout: plain lines or Rich tables, panels, and charts.",
+)
 @click.option("--top", default=10, help="Number of top services to display")
-def analyze(dmesg, bootlog, bootchart, systemd_time, systemd_blame, output, top):
+def analyze(dmesg, bootlog, bootchart, systemd_time, systemd_blame, output, output_format, top):
     """Analyze system boot or logs from files."""
     if any([dmesg, bootlog, bootchart, systemd_time, systemd_blame]):
         raw_data = {
@@ -33,7 +41,7 @@ def analyze(dmesg, bootlog, bootchart, systemd_time, systemd_blame, output, top)
             click.echo(f"[WARN] {raw_data['warning']}")
 
     parsed = parse_data(raw_data)
-    print_cli_report(parsed, top)
+    print_cli_report(parsed, top, style=output_format)
 
     if output:
         save_html_report(parsed, output, top)
