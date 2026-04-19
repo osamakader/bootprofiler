@@ -1,5 +1,8 @@
 import re
 
+_ANSI_ESCAPE = re.compile(r"\x1b\[[0-9;]*m")
+
+
 def parse_data(raw):
     parsed = {
         "firmware": 0.0,
@@ -8,14 +11,16 @@ def parse_data(raw):
         "userspace": 0.0,
         "total": 0.0,
         "kernel_delays": [],
-        "services": []
+        "services": [],
     }
 
     is_systemd = bool(raw.get("time") or raw.get("blame"))
 
-    if raw.get("dmesg"):
-        parsed["kernel"] = estimate_kernel_time(raw["dmesg"])
-        parsed["kernel_delays"] = extract_kernel_delays(raw["dmesg"])
+    # Monotonic `[ 0.000000]` lines come from plain `dmesg` or may appear in boot.log.
+    log_for_kernel = raw.get("dmesg") or raw.get("boot_log")
+    if log_for_kernel:
+        parsed["kernel"] = estimate_kernel_time(log_for_kernel)
+        parsed["kernel_delays"] = extract_kernel_delays(log_for_kernel)
 
     if is_systemd:
         if raw.get("time"):
@@ -37,8 +42,9 @@ def parse_systemd_time(text):
         "total": 0.0
     }
     m = re.search(
-        r"([\d\.]+)s \(firmware\)\s+\+\s+([\d\.]+)s \(loader\)\s+\+\s+([\d\.]+)s \(kernel\)\s+\+\s+([\d\.]+)s \(userspace\)\s+=\s+([\d\.]+)s",
-        text
+        r"([\d.]+)s\s+\(firmware\)\s+\+\s+([\d.]+)s\s+\(loader\)\s+\+\s+([\d.]+)s\s+\(kernel\)\s+\+\s+([\d.]+)s\s+\(userspace\)\s+=\s+([\d.]+)s",
+        text,
+        re.MULTILINE,
     )
     if m:
         result["firmware"] = float(m.group(1))
@@ -51,6 +57,9 @@ def parse_systemd_time(text):
 def parse_systemd_blame(text):
     services = []
     for line in text.splitlines():
+        line = _ANSI_ESCAPE.sub("", line).strip()
+        if not line:
+            continue
         m = re.match(r"\s*(\d+\.\d+|\d+)(ms|s)\s+(.*)", line)
         if m:
             duration = float(m.group(1))

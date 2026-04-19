@@ -1,5 +1,5 @@
+from html import escape
 from rich.console import Console
-import os
 
 console = Console()
 
@@ -30,10 +30,13 @@ def save_html_report(parsed, filename, top=10):
     # Main boot phases timeline
     html += "<div style='display:flex; width:100%; font-size:14px; height:30px; align-items:center;'>"
     if parsed['firmware'] > 0:
-        html += f"<div title='Firmware: {parsed['firmware']:.3f}s' style='flex:{parsed['firmware']}; background:#4fa3d1; height:100%;'></div>"
+        fw = parsed['firmware']
+        html += f"<div title='Firmware: {fw:.3f}s' style='flex:{fw}; background:#4fa3d1; height:100%;'></div>"
     if parsed['loader'] > 0:
-        html += f"<div title='Loader: {parsed['loader']:.3f}s' style='flex:{parsed['loader']}; background:#38b2ac; height:100%;'></div>"
-    html += f"<div title='Kernel: {parsed['kernel']['end']:.3f}s' style='flex:{parsed['kernel']['end']}; background:#48bb78; height:100%;'></div>"
+        ld = parsed['loader']
+        html += f"<div title='Loader: {ld:.3f}s' style='flex:{ld}; background:#38b2ac; height:100%;'></div>"
+    k = parsed['kernel']['end']
+    html += f"<div title='Kernel: {k:.3f}s' style='flex:{k}; background:#48bb78; height:100%;'></div>"
 
     # Userspace with nested service bars
     if parsed['userspace'] > 0:
@@ -52,7 +55,11 @@ def save_html_report(parsed, filename, top=10):
             width_ratio = s["duration"] / total_services_time
             flex_val = width_ratio * parsed['userspace']
             color = colors[i % len(colors)]
-            html += f"<div title='{s['name']}: {s['duration']:.3f}s' style='flex:{flex_val}; background:{color};'></div>"
+            safe_title = escape(f"{s['name']}: {s['duration']:.3f}s", quote=True)
+            html += (
+                f"<div title=\"{safe_title}\" "
+                f"style='flex:{flex_val}; background:{color};'></div>"
+            )
 
         html += "</div></div>"
     html += "</div><hr>"
@@ -61,14 +68,16 @@ def save_html_report(parsed, filename, top=10):
     if parsed["services"]:
         html += "<h2>Top Services</h2><ul>"
         for s in parsed["services"][:top]:
-            html += f"<li>{s['name']}: {s['duration']:.3f}s</li>"
+            html += f"<li>{escape(s['name'])}: {s['duration']:.3f}s</li>"
         html += "</ul>"
 
     # List kernel delays
     if parsed["kernel_delays"]:
         html += "<h2>Top Kernel Delays</h2><ul>"
         for d in parsed["kernel_delays"]:
-            html += f"<li>{d['from']} → {d['to']}: {d['delta']:.3f}s</li>"
+            html += (
+                f"<li>{escape(d['from'])} → {escape(d['to'])}: {d['delta']:.3f}s</li>"
+            )
         html += "</ul>"
 
     html += "</body></html>"

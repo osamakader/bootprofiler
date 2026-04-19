@@ -27,6 +27,10 @@ def analyze(dmesg, bootlog, bootchart, systemd_time, systemd_blame, output, top)
         init_type = detect_init()
         click.echo(f"[INFO] Detected init system: {init_type}")
         raw_data = collect_data(init_type)
+        if raw_data.get("error"):
+            click.echo(f"[ERROR] {raw_data['error']}", err=True)
+        elif raw_data.get("warning"):
+            click.echo(f"[WARN] {raw_data['warning']}")
 
     parsed = parse_data(raw_data)
     print_cli_report(parsed, top)
@@ -37,7 +41,7 @@ def analyze(dmesg, bootlog, bootchart, systemd_time, systemd_blame, output, top)
 
 def read_file(path):
     if path and os.path.exists(path):
-        with open(path) as f:
+        with open(path, encoding="utf-8", errors="replace") as f:
             return f.read()
     return None
 
