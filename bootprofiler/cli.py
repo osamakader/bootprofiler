@@ -20,7 +20,7 @@ from bootprofiler.core.visualizer import print_cli_report, save_html_report
     show_default=True,
     help="Terminal layout: plain lines or Rich tables, panels, and charts.",
 )
-@click.option("--top", default=10, help="Number of top services to display")
+@click.option("--top", default=10, type=click.IntRange(min=1), help="Number of top services to display")
 def analyze(dmesg, bootlog, bootchart, systemd_time, systemd_blame, output, output_format, top):
     """Analyze system boot or logs from files."""
     if any([dmesg, bootlog, bootchart, systemd_time, systemd_blame]):
