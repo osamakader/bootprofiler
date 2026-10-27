@@ -7,11 +7,11 @@ from bootprofiler.core.parser import parse_data
 from bootprofiler.core.visualizer import print_cli_report, save_html_report
 
 @click.command()
-@click.option("--dmesg", type=click.Path(exists=True), help="Path to dmesg log file")
-@click.option("--bootlog", type=click.Path(exists=True), help="Path to /var/log/boot.log file")
-@click.option("--bootchart", type=click.Path(exists=True), help="Path to bootchart.tgz file")
-@click.option("--systemd-time", type=click.Path(exists=True), help="systemd-analyze time output")
-@click.option("--systemd-blame", type=click.Path(exists=True), help="systemd-analyze blame output")
+@click.option("--dmesg", type=click.Path(exists=True, dir_okay=False), help="Path to dmesg log file")
+@click.option("--bootlog", type=click.Path(exists=True, dir_okay=False), help="Path to /var/log/boot.log file")
+@click.option("--bootchart", type=click.Path(exists=True, dir_okay=False), help="Path to bootchart.tgz file")
+@click.option("--systemd-time", type=click.Path(exists=True, dir_okay=False), help="systemd-analyze time output")
+@click.option("--systemd-blame", type=click.Path(exists=True, dir_okay=False), help="systemd-analyze blame output")
 @click.option("--output", "-o", default=None, help="Save HTML report to file")
 @click.option(
     "--format",

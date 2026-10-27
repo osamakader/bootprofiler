@@ -30,3 +30,9 @@ def test_report_prints_under_c_locale(tmp_path, style):
     )
     assert result.returncode == 0, result.stderr.decode()
     assert b"Run /init as init process" in result.stdout
+
+
+def test_log_path_must_be_a_file(tmp_path):
+    result = CliRunner().invoke(analyze, ["--dmesg", str(tmp_path)])
+    assert result.exit_code == 2
+    assert "is a directory" in result.output
