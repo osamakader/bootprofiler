@@ -27,6 +27,8 @@ def print_cli_report_simple(parsed, top):
     if parsed.get("loader"):
         console.print(f"  - Loader:    {parsed['loader']:.3f}s")
     console.print(f"  - Kernel:    {parsed['kernel']['end']:.3f}s")
+    if parsed.get("initrd"):
+        console.print(f"  - Initrd:    {parsed['initrd']:.3f}s")
     if parsed["userspace"]:
         console.print(f"  - Userspace: {parsed['userspace']:.3f}s")
 
@@ -50,6 +52,7 @@ def _phase_segments(parsed):
     fw = float(parsed.get("firmware") or 0)
     ld = float(parsed.get("loader") or 0)
     kr = float(parsed["kernel"]["end"] or 0)
+    ird = float(parsed.get("initrd") or 0)
     us = float(parsed.get("userspace") or 0)
     if fw > 0:
         segs.append(("Firmware", fw, "bold cyan"))
@@ -57,6 +60,8 @@ def _phase_segments(parsed):
         segs.append(("Loader", ld, "bold turquoise2"))
     if kr > 0:
         segs.append(("Kernel", kr, "bold green"))
+    if ird > 0:
+        segs.append(("Initrd", ird, "bold yellow"))
     if us > 0:
         segs.append(("Userspace", us, "bold magenta"))
     return segs
@@ -123,6 +128,8 @@ def print_cli_report_pretty(parsed, top):
     if parsed.get("loader"):
         rows.append(("Loader", parsed["loader"]))
     rows.append(("Kernel", kernel_end))
+    if parsed.get("initrd"):
+        rows.append(("Initrd", parsed["initrd"]))
     if parsed.get("userspace"):
         rows.append(("Userspace", parsed["userspace"]))
 
@@ -234,6 +241,9 @@ def save_html_report(parsed, filename, top=10):
         html += f"<div title='Loader: {ld:.3f}s' style='flex:{ld}; background:#38b2ac; height:100%;'></div>"
     k = parsed['kernel']['end']
     html += f"<div title='Kernel: {k:.3f}s' style='flex:{k}; background:#48bb78; height:100%;'></div>"
+    if parsed.get('initrd', 0) > 0:
+        ird = parsed['initrd']
+        html += f"<div title='Initrd: {ird:.3f}s' style='flex:{ird}; background:#ecc94b; height:100%;'></div>"
 
     # Userspace with nested service bars
     if parsed['userspace'] > 0:
