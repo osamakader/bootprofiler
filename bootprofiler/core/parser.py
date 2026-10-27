@@ -104,12 +104,13 @@ def parse_systemd_blame(text):
         line = _ANSI_ESCAPE.sub("", line).strip()
         if not line:
             continue
-        m = re.match(r"\s*(\d+\.\d+|\d+)(ms|s)\s+(.*)", line)
-        if m:
-            duration = float(m.group(1))
-            if m.group(2) == "ms":
-                duration /= 1000.0  # convert to seconds
-            services.append({"name": m.group(3), "duration": duration})
+        # The timespan may have several words ("1min 2.345s"); the unit name follows it.
+        parts = line.split()
+        for i in range(len(parts) - 1, 0, -1):
+            duration = parse_timespan(" ".join(parts[:i]))
+            if duration is not None:
+                services.append({"name": " ".join(parts[i:]), "duration": duration})
+                break
     services.sort(key=lambda x: x["duration"], reverse=True)
     return services
 

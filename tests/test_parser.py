@@ -1,6 +1,11 @@
 import pytest
 
-from bootprofiler.core.parser import parse_data, parse_systemd_time, parse_timespan
+from bootprofiler.core.parser import (
+    parse_data,
+    parse_systemd_blame,
+    parse_systemd_time,
+    parse_timespan,
+)
 
 
 @pytest.mark.parametrize(
@@ -58,3 +63,21 @@ def test_systemd_time_unparseable_keeps_dmesg_kernel_time():
     })
     assert parsed["kernel"]["end"] == 1.5
     assert parsed["total"] == 1.5
+
+
+def test_systemd_blame_units():
+    services = parse_systemd_blame(
+        "1min 2.345s apt-daily.service\n"
+        "     5.432s NetworkManager-wait-online.service\n"
+        "      123ms foo.service\n"
+        "\x1b[1m      512us bar.service\x1b[0m\n"
+        "\n"
+    )
+    assert [s["name"] for s in services] == [
+        "apt-daily.service",
+        "NetworkManager-wait-online.service",
+        "foo.service",
+        "bar.service",
+    ]
+    assert services[0]["duration"] == pytest.approx(62.345)
+    assert services[3]["duration"] == pytest.approx(0.000512)
