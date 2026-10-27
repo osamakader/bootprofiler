@@ -9,7 +9,6 @@ from bootprofiler.core.visualizer import print_cli_report, save_html_report
 @click.command()
 @click.option("--dmesg", type=click.Path(exists=True, dir_okay=False), help="Path to dmesg log file")
 @click.option("--bootlog", type=click.Path(exists=True, dir_okay=False), help="Path to /var/log/boot.log file")
-@click.option("--bootchart", type=click.Path(exists=True, dir_okay=False), help="Path to bootchart.tgz file")
 @click.option("--systemd-time", type=click.Path(exists=True, dir_okay=False), help="systemd-analyze time output")
 @click.option("--systemd-blame", type=click.Path(exists=True, dir_okay=False), help="systemd-analyze blame output")
 @click.option("--output", "-o", default=None, help="Save HTML report to file")
@@ -22,16 +21,15 @@ from bootprofiler.core.visualizer import print_cli_report, save_html_report
     help="Terminal layout: plain lines or Rich tables, panels, and charts.",
 )
 @click.option("--top", default=10, type=click.IntRange(min=1), help="Number of top services to display")
-def analyze(dmesg, bootlog, bootchart, systemd_time, systemd_blame, output, output_format, top):
+def analyze(dmesg, bootlog, systemd_time, systemd_blame, output, output_format, top):
     """Analyze system boot or logs from files."""
     # Reports use symbols like "→"; print "?" instead of crashing on ASCII terminals.
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(errors="replace")
-    if any([dmesg, bootlog, bootchart, systemd_time, systemd_blame]):
+    if any([dmesg, bootlog, systemd_time, systemd_blame]):
         raw_data = {
             "dmesg": read_file(dmesg),
             "boot_log": read_file(bootlog),
-            "bootchart": bootchart,
             "time": read_file(systemd_time),
             "blame": read_file(systemd_blame),
         }
