@@ -114,24 +114,39 @@ def parse_systemd_blame(text):
     services.sort(key=lambda x: x["duration"], reverse=True)
     return services
 
+_DMESG_LINE = re.compile(r"\[\s*(\d+\.\d+)\]\s*(.*)")
+# The kernel hands over to userspace (initramfs or rootfs init) here.
+_INIT_HANDOFF = re.compile(r"Run \S+ as init process")
+
+
+def _kernel_boot_lines(dmesg_text):
+    """Yield (timestamp, message) for dmesg lines up to the init handoff.
+
+    Without a handoff marker every timestamped line is yielded.
+    """
+    for line in dmesg_text.splitlines():
+        m = _DMESG_LINE.match(line)
+        if not m:
+            continue
+        t, msg = float(m.group(1)), m.group(2)
+        yield t, msg
+        if _INIT_HANDOFF.search(msg):
+            return
+
+
 def estimate_kernel_time(dmesg_text):
     last_ts = 0.0
-    for line in dmesg_text.splitlines():
-        m = re.match(r"\[\s*(\d+\.\d+)\]", line)
-        if m:
-            last_ts = float(m.group(1))
+    for t, _ in _kernel_boot_lines(dmesg_text):
+        last_ts = t
     return {"start": 0.0, "end": last_ts}
 
 def extract_kernel_delays(dmesg_text, top_n=5):
     delays = []
     prev_time, prev_msg = None, None
-    for line in dmesg_text.splitlines():
-        m = re.match(r"\[\s*(\d+\.\d+)\]\s+(.*)", line)
-        if m:
-            t, msg = float(m.group(1)), m.group(2)
-            if prev_time is not None:
-                delta = t - prev_time
-                delays.append({"delta": delta, "from": prev_msg, "to": msg, "start": prev_time, "end": t})
-            prev_time, prev_msg = t, msg
+    for t, msg in _kernel_boot_lines(dmesg_text):
+        if prev_time is not None:
+            delta = t - prev_time
+            delays.append({"delta": delta, "from": prev_msg, "to": msg, "start": prev_time, "end": t})
+        prev_time, prev_msg = t, msg
     delays.sort(key=lambda x: x["delta"], reverse=True)
     return delays[:top_n]

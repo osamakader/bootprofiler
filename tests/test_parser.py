@@ -1,6 +1,8 @@
 import pytest
 
 from bootprofiler.core.parser import (
+    estimate_kernel_time,
+    extract_kernel_delays,
     parse_data,
     parse_systemd_blame,
     parse_systemd_time,
@@ -81,3 +83,25 @@ def test_systemd_blame_units():
     ]
     assert services[0]["duration"] == pytest.approx(62.345)
     assert services[3]["duration"] == pytest.approx(0.000512)
+
+
+DMESG_LIVE = (
+    "[    0.000000] Linux version 6.8.0\n"
+    "[    1.500000] [drm] Initialized i915\n"
+    "[    2.000000] Run /init as init process\n"
+    "[ 3600.000000] usb 1-1: new high-speed USB device\n"
+)
+
+
+def test_kernel_time_stops_at_init_handoff():
+    assert estimate_kernel_time(DMESG_LIVE) == {"start": 0.0, "end": 2.0}
+
+
+def test_kernel_delays_ignore_post_boot_messages():
+    delays = extract_kernel_delays(DMESG_LIVE)
+    assert [d["delta"] for d in delays] == [1.5, 0.5]
+    assert delays[0]["to"] == "[drm] Initialized i915"
+
+
+def test_kernel_time_without_handoff_uses_last_line():
+    assert estimate_kernel_time("[    0.1] a\n[    0.7] b\n")["end"] == 0.7
