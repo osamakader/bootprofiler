@@ -228,7 +228,7 @@ def print_cli_report_pretty(parsed, top):
 
 def save_html_report(parsed, filename, top=10):
     total = parsed['total']
-    html = "<html><head><title>Boot Profiler Report</title></head><body>"
+    html = "<!DOCTYPE html><html><head><meta charset='utf-8'><title>Boot Profiler Report</title></head><body>"
     html += "<h1>Boot Profiler Report</h1>"
     html += f"<p>Total Boot Time: {total:.2f}s</p>"
 
@@ -290,6 +290,6 @@ def save_html_report(parsed, filename, top=10):
 
     html += "</body></html>"
 
-    with open(filename, "w") as f:
+    with open(filename, "w", encoding="utf-8") as f:
         f.write(html)
 

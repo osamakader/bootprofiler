@@ -1,7 +1,14 @@
+import os
+import subprocess
+import sys
+from pathlib import Path
+
 import pytest
 
 from bootprofiler.core import visualizer
 from bootprofiler.core.parser import parse_data
+
+ROOT = Path(__file__).resolve().parent.parent
 
 RAW = {
     "dmesg": (
@@ -20,3 +27,17 @@ def test_log_text_is_not_rich_markup(style, capsys, monkeypatch):
     out = capsys.readouterr().out
     assert "[drm] Initialized i915 [/bold]" in out
     assert "[weird]-unit.service" in out
+
+
+def test_html_report_is_utf8_under_c_locale(tmp_path):
+    out = tmp_path / "report.html"
+    code = (
+        "from bootprofiler.core.parser import parse_data;"
+        "from bootprofiler.core.visualizer import save_html_report;"
+        f"save_html_report(parse_data({RAW!r}), {str(out)!r})"
+    )
+    env = dict(os.environ, LC_ALL="C", PYTHONUTF8="0", PYTHONPATH=str(ROOT))
+    subprocess.run([sys.executable, "-c", code], check=True, env=env)
+    html = out.read_text(encoding="utf-8")
+    assert "<meta charset='utf-8'>" in html
+    assert "→" in html
