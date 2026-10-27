@@ -4,6 +4,7 @@ from rich import box
 from rich.bar import Bar
 from rich.columns import Columns
 from rich.console import Console, Group
+from rich.markup import escape as markup_escape
 from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
@@ -37,13 +38,13 @@ def print_cli_report_simple(parsed, top):
         for i, d in enumerate(parsed["kernel_delays"], 1):
             console.print(
                 f"{i}) [{d['start']:.3f}s → {d['end']:.3f}s] "
-                f"{d['from']} → {d['to']} ({d['delta']:.2f}s)"
+                f"{markup_escape(d['from'])} → {markup_escape(d['to'])} ({d['delta']:.2f}s)"
             )
 
     if parsed["services"]:
         console.print("\n[yellow]Top Services:[/yellow]")
         for i, s in enumerate(parsed["services"][:top], 1):
-            console.print(f"{i}) {s['name']}: {s['duration']:.2f}s")
+            console.print(f"{i}) {markup_escape(s['name'])}: {s['duration']:.2f}s")
 
 
 def _phase_segments(parsed):
@@ -187,7 +188,7 @@ def print_cli_report_pretty(parsed, top):
                 str(i),
                 f"{d['delta']:.3f}s",
                 window,
-                span,
+                Text(span),
             )
         console.print(delay_table)
         console.print()
@@ -217,7 +218,7 @@ def print_cli_report_pretty(parsed, top):
             )
             svc_table.add_row(
                 str(i),
-                s["name"],
+                Text(s["name"]),
                 f"{s['duration']:.3f}s",
                 bar,
             )
