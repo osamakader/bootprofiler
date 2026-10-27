@@ -60,6 +60,10 @@ def parse_data(raw):
         if timing:
             parsed.update(timing)
         parsed["services"] = parse_systemd_blame(raw.get("blame", ""))
+        if raw.get("unit_starts") and raw.get("boot_finish"):
+            parsed["services"] = drop_post_boot_units(
+                parsed["services"], raw["unit_starts"], raw["boot_finish"]
+            )
         if parsed["total"] == 0 and parsed["kernel"]["end"] > 0:
             parsed["total"] = parsed["kernel"]["end"]
     else:
@@ -132,6 +136,31 @@ def _kernel_boot_lines(dmesg_text):
         yield t, msg
         if _INIT_HANDOFF.search(msg):
             return
+
+
+def drop_post_boot_units(services, unit_starts, boot_finish):
+    """Remove units that started after boot finished.
+
+    `unit_starts` is `systemctl show -p Id -p InactiveExitTimestampMonotonic` output
+    and `boot_finish` the manager's FinishTimestampMonotonic, both in microseconds.
+    Units without a start time are kept.
+    """
+    try:
+        finish = int(boot_finish.strip())
+    except ValueError:
+        return services
+    if finish <= 0:  # boot not finished yet
+        return services
+
+    starts = {}
+    unit = None
+    for line in unit_starts.splitlines():
+        key, _, value = line.partition("=")
+        if key == "Id":
+            unit = value
+        elif key == "InactiveExitTimestampMonotonic" and unit and value.isdigit():
+            starts[unit] = int(value)
+    return [s for s in services if starts.get(s["name"], 0) <= finish]
 
 
 def estimate_kernel_time(dmesg_text):

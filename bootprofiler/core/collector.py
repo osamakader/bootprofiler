@@ -2,6 +2,8 @@ import json
 import subprocess
 import os
 
+from bootprofiler.core.parser import parse_systemd_blame
+
 # Plain `dmesg` emits `[    0.000000]` monotonic timestamps, which matches our parser.
 # `dmesg -T` uses human-readable dates and breaks estimate_kernel_time / extract_kernel_delays.
 
@@ -92,6 +94,15 @@ def collect_systemd_data():
     b = _run(["systemd-analyze", "blame"])
     if b:
         data["blame"] = b
+        # blame also lists units started after boot (suspend, timers, logins);
+        # their start times let the parser drop them.
+        units = [s["name"] for s in parse_systemd_blame(b)]
+        if units:
+            starts = _run(["systemctl", "show", "-p", "Id", "-p", "InactiveExitTimestampMonotonic", *units])
+            finish = _run(["systemctl", "show", "-p", "FinishTimestampMonotonic", "--value"])
+            if starts and finish:
+                data["unit_starts"] = starts
+                data["boot_finish"] = finish
     data["dmesg"] = _capture_dmesg(errors)
 
     if errors and not data.get("time") and not data.get("blame"):

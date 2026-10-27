@@ -105,3 +105,22 @@ def test_kernel_delays_ignore_post_boot_messages():
 
 def test_kernel_time_without_handoff_uses_last_line():
     assert estimate_kernel_time("[    0.1] a\n[    0.7] b\n")["end"] == 0.7
+
+
+UNIT_STARTS = (
+    "Id=thermald.service\nInactiveExitTimestampMonotonic=6526897\n\n"
+    "Id=systemd-suspend.service\nInactiveExitTimestampMonotonic=1481881628\n\n"
+    "Id=never-started.service\nInactiveExitTimestampMonotonic=0\n"
+)
+BLAME = "4.08s systemd-suspend.service\n1.06s thermald.service\n0.2s never-started.service\n"
+
+
+def test_post_boot_units_are_dropped():
+    parsed = parse_data({"blame": BLAME, "unit_starts": UNIT_STARTS, "boot_finish": "8093424\n"})
+    assert [s["name"] for s in parsed["services"]] == ["thermald.service", "never-started.service"]
+
+
+@pytest.mark.parametrize("finish", ["0\n", "garbage"])
+def test_units_kept_when_boot_finish_unknown(finish):
+    parsed = parse_data({"blame": BLAME, "unit_starts": UNIT_STARTS, "boot_finish": finish})
+    assert len(parsed["services"]) == 3
