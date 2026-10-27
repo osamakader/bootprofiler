@@ -1,5 +1,6 @@
 import click
 import os
+import sys
 from bootprofiler.core.detector import detect_init
 from bootprofiler.core.collector import collect_data
 from bootprofiler.core.parser import parse_data
@@ -23,6 +24,9 @@ from bootprofiler.core.visualizer import print_cli_report, save_html_report
 @click.option("--top", default=10, type=click.IntRange(min=1), help="Number of top services to display")
 def analyze(dmesg, bootlog, bootchart, systemd_time, systemd_blame, output, output_format, top):
     """Analyze system boot or logs from files."""
+    # Reports use symbols like "→"; print "?" instead of crashing on ASCII terminals.
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(errors="replace")
     if any([dmesg, bootlog, bootchart, systemd_time, systemd_blame]):
         raw_data = {
             "dmesg": read_file(dmesg),
