@@ -41,3 +41,12 @@ def test_html_report_is_utf8_under_c_locale(tmp_path):
     html = out.read_text(encoding="utf-8")
     assert "<meta charset='utf-8'>" in html
     assert "→" in html
+
+
+def test_html_service_bars_scale_to_slowest_unit(tmp_path):
+    parsed = parse_data({"blame": "2.000s slow.service\n0.500s fast.service\n"})
+    out = tmp_path / "report.html"
+    visualizer.save_html_report(parsed, str(out))
+    html = out.read_text(encoding="utf-8")
+    assert "width:100.0%" in html
+    assert "width:25.0%" in html

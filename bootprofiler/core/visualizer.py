@@ -246,38 +246,25 @@ def save_html_report(parsed, filename, top=10):
         ird = parsed['initrd']
         html += f"<div title='Initrd: {ird:.3f}s' style='flex:{ird}; background:#ecc94b; height:100%;'></div>"
 
-    # Userspace with nested service bars
     if parsed['userspace'] > 0:
-        html += "<div style='flex:{}; background:#9f7aea; height:100%; display:flex; flex-direction:column;'>".format(parsed['userspace'])
-        html += "<div style='font-size:12px; color:#fff; padding-left:4px;'>Userspace</div>"
-        html += "<div style='display:flex; flex-grow:1; height:18px;'>"
-
-        # Sum of top services durations to scale sub-bars proportionally
-        services = parsed.get("services", [])[:top]
-        total_services_time = sum(s["duration"] for s in services) or 1.0  # avoid div by zero
-
-        # Colors for services (some shades of purple)
-        colors = ["#d4bfff", "#c0aaff", "#b399ff", "#a380ff", "#8e68ff", "#7b4dff", "#682eff", "#5614ff", "#4200ff", "#2f00e5"]
-
-        for i, s in enumerate(services):
-            width_ratio = s["duration"] / total_services_time
-            flex_val = width_ratio * parsed['userspace']
-            color = colors[i % len(colors)]
-            safe_title = escape(f"{s['name']}: {s['duration']:.3f}s", quote=True)
-            html += (
-                f"<div title=\"{safe_title}\" "
-                f"style='flex:{flex_val}; background:{color};'></div>"
-            )
-
-        html += "</div></div>"
+        us = parsed['userspace']
+        html += f"<div title='Userspace: {us:.3f}s' style='flex:{us}; background:#9f7aea; height:100%;'></div>"
     html += "</div><hr>"
 
-    # List top services under timeline
+    # Services run in parallel, so each bar is scaled to the slowest unit rather
+    # than packed into the userspace phase as if they ran one after another.
     if parsed["services"]:
-        html += "<h2>Top Services</h2><ul>"
-        for s in parsed["services"][:top]:
-            html += f"<li>{escape(s['name'])}: {s['duration']:.3f}s</li>"
-        html += "</ul>"
+        services = parsed["services"][:top]
+        max_d = max(s["duration"] for s in services) or 1.0
+        html += "<h2>Top Services</h2><table style='width:100%; font-size:14px;'>"
+        for s in services:
+            pct = 100.0 * s["duration"] / max_d
+            html += (
+                f"<tr><td style='white-space:nowrap;'>{escape(s['name'])}</td>"
+                f"<td style='text-align:right; white-space:nowrap;'>{s['duration']:.3f}s</td>"
+                f"<td style='width:60%;'><div style='width:{pct:.1f}%; height:14px; background:#9f7aea;'></div></td></tr>"
+            )
+        html += "</table>"
 
     # List kernel delays
     if parsed["kernel_delays"]:
